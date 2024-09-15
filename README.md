@@ -1,121 +1,152 @@
 
-# Turtle Fun Project
+# **ROS2 เต่าหรรษา+ Project**
 
-## Overview
+## overview
 
-This project is part of a ROS2-based simulation using the `turtlesim` package. It includes a custom teleoperation node (`teleop_key.py`) that allows users to control the turtle's movement using keyboard inputs. This project provides a simple, interactive way to explore ROS2 by navigating a virtual turtle within a 2D environment.
+โครงการ **เต่าหรรษา+** นี้มีวัตถุประสงค์เพื่อช่วยให้นักเรียนได้เรียนรู้เกี่ยวกับแนวคิด **ROS2** เช่น Topics, Services, Parameters, Namespaces, และ Launch Files โครงการนี้จำลองสองส่วนหลัก: **Teleop Turtle** และ **Copy Turtle** โดยที่ **Teleop Turtle** รับคำสั่งจากแป้นพิมพ์เพื่อควบคุมเต่าในสภาพแวดล้อมจำลอง ส่วน **Copy Turtle** จะติดตามเส้นทางที่บันทึกไว้และสร้างพิซซ่าในตำแหน่งที่บันทึกโดย Teleop Turtle
 
-## Prerequisites
+## **Keyfeature**
 
-Before running this project, make sure you have the following prerequisites installed and configured on your system:
+1. **Teleop Turtle**:
+   - เคลื่อนที่เต่าด้วยการควบคุมจากแป้นพิมพ์ (`w`, `a`, `s`, `d`)
+   - สร้างพิซซ่าที่ตำแหน่งปัจจุบันของเต่าด้วยปุ่มเฉพาะ (`i`)
+   - บันทึกตำแหน่งของพิซซ่าลงในไฟล์ `.yaml` ด้วยปุ่มเฉพาะ (`o`)
+   - ลบพิซซ่าที่ไม่ได้บันทึกด้วยปุ่มเฉพาะ (`p`)
+   - Teleop Turtle จำกัดจำนวนพิซซ่าไว้ที่ **n pizzas** ซึ่งสามารถตั้งค่าได้โดยใช้ **RQT**
+   - ปรับค่าควบคุม (controller gains) สำหรับการเคลื่อนที่ของเต่าผ่าน **RQT**
 
-1. **ROS2 (Humble or later)** installed and sourced correctly.
-2. **Python 3.x** for executing Python-based ROS2 nodes.
-3. **colcon** build tool installed, typically included with ROS2.
-4. **Turtlesim** package, which is included with ROS2 by default.
+2. **Copy Turtle**:
+   - สร้างเต่าอัตโนมัติ 4 ตัว (**Foxy, Noetic, Humble, Iron**)
+   - เต่าแต่ละตัวจะติดตามตำแหน่งของพิซซ่าที่บันทึกไว้โดย **Teleop Turtle**
+   - เมื่อเต่าทุกตัวเสร็จสิ้นการวางพิซซ่า จะเคลื่อนที่ไปยังพื้นที่ที่กำหนดไว้ทางขวาบนของการจำลอง
+   - กระบวนการนี้จะทำซ้ำเมื่อ Teleop Turtle บันทึกการดำเนินการทั้งหมด 4 ครั้ง
 
-If you do not have ROS2 installed, follow the [ROS2 Installation Instructions](https://docs.ros.org/en/humble/Installation.html) specific to your operating system.
+## **System Architecture**
+- เริ่มจากการออกแบบวางแผนโครงสร้างความเชื่อมโยงของระบบเพื่อให้ง่ายต่อการทำงานประสานงานกับเพื่อน และความเข้าใจร่วมกัน
 
-## Getting Started
+![System Architecture](https://cdn.discordapp.com/attachments/1033675367401132097/1284683521264324729/System_architecture_-_turtle_fun.launch.py_2.jpg?ex=66e78643&is=66e634c3&hm=5f1c7f3fd98b5ab30d4b95f391f0a9aa4faa66652938231637962677ec08025c&)
 
-Follow these steps to clone, build, and run the `turtle_fun` project:
+โครงสร้างนี้ประกอบด้วย Node และการสื่อสารระหว่าง Node ผ่าน Topic และ Service:
 
-### Step 1: Clone the Repository
+- **Teleop Turtle Nodes**:
+  - `teleop_key.py`: รับคำสั่งจากแป้นพิมพ์เพื่อควบคุม Teleop Turtle
+  - `teleop_schedule.py`: จัดการสถานะของ Teleop Turtle รวมถึงการสร้างและการบันทึกพิซซ่า
 
-First, open your terminal and clone this repository into your ROS2 workspace (usually located in `~/ros2_ws`):
+- **Copy Turtle Nodes**:
+  - `copy_schedule.py`: จัดการกลุ่ม Copy Turtle เพื่อให้แต่ละตัวติดตามตำแหน่งพิซซ่าที่บันทึกไว้
+  - 
+- **Controller Nodes**:
+- `controller.py`: ควบคุมการเคลื่อนที่ของ Turtle ทุกตัวและ Copy Turtle แต่ละตัวตามตำแหน่งที่บันทึกไว้ในไฟล์ `.yaml`
 
-```bash
-git clone https://github.com/Sopehurt/Exam1-.git
-```
+- **ไฟล์เพิ่มเติม**:
+  - `path.yaml`: เก็บตำแหน่งของพิซซ่าที่บันทึกโดย Teleop Turtle
+  - **ไฟล์ Launch**:
+    - `turtle_fun.launch.py`: รันโหนดทั้งหมด
+      - โดยมีขั้นตอนเริ่มจากสร้างหน้าต่าง
+      - ฆ่าเต่าตัวแรกของหน้าต่างออก
+      - กำเนิดเต่าตัวใหม่ด้วยชื่อใหม่ที่ตั้งด้วย namespace
+      - รันโหนดอื่นที่เหลือตามมา teleop_schedule.py controller.py copy_schedule.py
+      - โดยที่แต่ละโหนดมีการประยุกต์ใช้ความรู้ความเข้าใจที่มีในเนื้อหาการเรียนวิชา Robotic-Dev เพื่อทำโปรเจคนี้ให้สำเร็จ
+## **ข้อกำหนดเบื้องต้น**
 
-Change to the directory where the repository was cloned:
+ก่อนที่จะรันโครงการนี้ ตรวจสอบว่าได้ติดตั้งเครื่องมือดังต่อไปนี้:
 
-```bash
-cd Exam1-
-```
+1. **ROS2** ที่ติดตั้งและใช้งานได้ถูกต้อง (ทดสอบกับ ROS2 Humble)
+2. **Colcon** สำหรับสร้างระบบ ROS2
+3. **RQT GUI** สำหรับปรับค่าพารามิเตอร์
 
-### Step 2: Build the Workspace
+## **ขั้นตอนการติดตั้ง**
 
-To compile the ROS2 package, use the following command:
+1. **โคลนที่เก็บข้อมูล** ลงในพื้นที่ทำงานของคุณ:
 
-```bash
-colcon build --packages-select turtle_fun
-```
+   ```bash
+   git clone https://github.com/Sopehurt/Exam1-.git
+   ```
 
-This command builds the `turtle_fun` package and its dependencies, preparing it for use in ROS2. Ensure there are no build errors before proceeding.
+2. **ไปที่โฟลเดอร์งาน**:
 
-### Step 3: Source the Workspace
+   ```bash
+   cd ros2_ws
+   ```
 
-After the build process completes, source the workspace to overlay the environment with the newly built packages:
 
-```bash
-source install/setup.bash
-```
+3. **Build** โดยใช้ colcon build:
 
-This step is critical because it allows the terminal to recognize the `turtle_fun` package and its associated nodes.
+   ```bash
+   colcon build
+   ```
 
-### Step 4: Install Any Additional Dependencies
+4. **Source the workspace**:
 
-Ensure that all required ROS2 packages, such as `turtlesim`, are installed by running:
+   ```bash
+   cd
+   source install/setup.bash
+   ```
 
-```bash
-sudo apt update
-sudo apt install ros-humble-turtlesim
-```
-
-## Usage
-
-### 1. Launch the Turtle Simulation
-
-Once the workspace is built and sourced, you can start the turtle simulation. In a new terminal (make sure to source your ROS2 installation), run the following command:
-
+## **การทดสอบการทำงานของระบบ**
+launch file ทั้งหมดของระบบด้วยชุดคำสั่งนี้
 ```bash
 ros2 launch turtle_fun turtle_fun.launch.py
 ```
 
-This will launch the `turtlesim` environment, and you'll see the turtle in a window, ready to be controlled.
+### **เริ่มต้น Teleop Turtle**
 
-### 2. Teleoperate the Turtle
-
-To teleoperate the turtle using the keyboard, open another terminal (also sourced), and run the following command:
+สามารถเริ่มการจำลอง Teleop Turtle ได้โดยใช้คำสั่งต่อไปนี้:
 
 ```bash
-ros2 run turtle_fun teleop_key.py
+ros2 run turtle_fun teleop_key.py 
 ```
 
-You can now use the keyboard to control the turtle’s movements:
+### **การควบคุม Teleop Turtle ผ่านแป้นพิมพ์**
 
-#### Keyboard Controls:
+- `w`: เดินหน้า-โดยจะส่งความเร็วเชิงเส้นไปให้เต่าไปข้างหน้า
+- `a`: เลี้ยวซ้าย-โดยจะส่งความเร็วเชิงมุมไปให้เต่าหมุนทวนเข็ม
+- `s`: ถอยหลัง-โดยจะส่งความเร็วเชิงเส้นไปให้เต่าไปข้างหลัง
+- `d`: เลี้ยวขวา-ดยจะส่งความเร็วเชิงมุมไปให้เต่าหมุนตามเข็ม
+- `r`: รีเซ็ตการจำลอง-รีเซ็ตค่าทั้งหมดที่เก็บมาได้เพื่อเริ่มเก็บใหม่
+- `i`: สร้างพิซซ่าที่ตำแหน่งของเต่า-เรียกใช้ service /spawn_pizza ณ ตำแหน่งที่เต่า trlrop อยู่
+- `o`: บันทึกตำแหน่งพิซซ่าในไฟล์ `.yaml`
+- `p`: ลบพิซซ่าที่ไม่ได้บันทึกออกจากการจำลอง-โดยการให้เต่าเดินไปกินตามลำดับโดยจะกินเฉพาะพิซซ่าที่เก็บมาแล้วแต่ยังไม่ได้ load ไปยัง .yaml file
 
-- `w`: Move forward
-- `a`: Turn left
-- `s`: Move backward
-- `d`: Turn right
-- `r`: Reset
-- `i`: Spawn pizza
-- `o`: Save
-- `p`: Clear
+## **การตั้งค่าพารามิเตอร์ใน RQT**
 
-Press the respective keys to move the turtle in the desired direction.
+สามารถปรับค่าพารามิเตอร์ต่อไปนี้ใน **RQT**:
 
-### 3. Stopping the Simulation
+1. **จำนวนพิซซ่า** ที่ Teleop Turtle สามารถสร้างได้
+2. **ค่า Gain ในการควมคุมความเร็ว** ของเต่าทั้งในการเคลื่อนที่เชิงเส้นและเชิงมุม
 
-To stop both the simulation and the teleop node, press `Ctrl+C` in each terminal where they are running.
+## **Teleop Turtle**
+- หลังจากลองควบคุม teleop_key ผ่านคีย์บอร์ดและเสกพิซซ่าออกมาและเซิฟได้ผลลัพธ์ดังนัี้
+![Teleop_key](https://cdn.discordapp.com/attachments/1033675367401132097/1284675962113495040/image.png?ex=66e77f39&is=66e62db9&hm=28acb68d49574d860e1e67698de1794421f9db1babdb0fa2d985112e9f348adf&)
 
-## Troubleshooting
+- สามารถ save ค่าตำแหน่งพิซซ่าลงใน file .yaml ได้ดังนี้
+![ymal](https://cdn.discordapp.com/attachments/1033675367401132097/1284677451506651178/image.png?ex=66e7809c&is=66e62f1c&hm=ff7fd3af09e6af43771e663373c0c39e741a4b7df87bbda79da28efb34fd2484&)
 
-1. **Build Errors**: If you encounter errors during the `colcon build` process, ensure all ROS2 dependencies are installed and that you are in the correct workspace.
-   
-2. **Unable to Control Turtle**: If the turtle does not move when using the `teleop_key.py` node, ensure that both the simulation and teleop nodes are running and that your terminal is focused on the window where `teleop_key.py` is active.
+- สามารถ ปรับพารามิเตอร์ใน rqt ได้โดยการใช้ service call ดังนี้
+![rqt](https://cdn.discordapp.com/attachments/1033675367401132097/1284679777986285608/image.png?ex=66e782c7&is=66e63147&hm=df0242d2759f673b95db59390679700e481cb3dd9964fca1b56536da16df7fe6&)
 
-3. **Workspace Not Found**: Always make sure you have sourced the workspace (`source install/setup.bash`) before running any ROS2 commands.
+- หลังจากป้อนตำแหน่งพิซซ่าครบทั้ง 4 path แล้วทำการกดปุ่ม 'o' อีกครั้งเพื่อยืนยันแล้วจากนั้น copy turtle ในหน้าจอที่ 2 ก็จะทำการวิ่งและสร้างพิซซ่าตามค่าที่เราเก็บมาใน file .yaml
+![copy](https://cdn.discordapp.com/attachments/1033675367401132097/1284680705472860311/image.png?ex=66e783a4&is=66e63224&hm=eaaebd134531d74621c2a61d0241dcff1d2073e33d782b82a322f71a57f1a9cc&)
 
-## Customization
+- copy turtle สามารถวาดพิซซ่าลอกเลียนแบบตาม teleop ได้สำเร็จ
+![complete](https://cdn.discordapp.com/attachments/1033675367401132097/1284685526955331645/image.png?ex=66e78821&is=66e636a1&hm=b392c1710c12baf8e2386909fe1a73d3eebd08f99d3e0b289af5c91543791253&)
 
-You can extend the functionality of this project by adding new nodes, services, or actions. The `turtlesim` package allows for spawning multiple turtles, changing pen colors, or controlling turtles using more advanced logic.
+- หุ่นเต่า copy ทุกตัวไปอยู่ตำแหน่งมุมบนขวาของจอ
+![finish](https://cdn.discordapp.com/attachments/1033675367401132097/1284688049737039882/image.png?ex=66e78a7b&is=66e638fb&hm=7de7628e173f6bb93a76021378a04ff131f2d4d45fdf8405261de1fc29a90acb&)
 
-To learn more, consult the [ROS2 Tutorials](https://docs.ros.org/en/humble/Tutorials.html).
+-สามารถดูความสัมพันของ Node Topic Service จริงๆของระบบทั้งหมดหลังจากทำเสร็จจาก rqt_graph ดังนี้
+![rqt](https://cdn.discordapp.com/attachments/1033675367401132097/1284690362191056896/rosgraph.png?ex=66e78ca2&is=66e63b22&hm=cbc1a1b1597067277ce5fb956110c48d3dd290f47e317cb5334d91ec6370c762&)
 
-## License
+## **ความท้าทายของการบ้านรอบนี้**
+- ระยะเวลากับเครื่องมือที่มีทุกอย่างยังทำออกมาอย่างยากลำบาก
+- การตีความโจทย์ เพื่อเขียนดักให้ได้ครบทุกทรณีมากที่สุดเป็นเรื่องที่ยากและงมนานมาก
+- การทำงาน ros ร่วมกันเป็นสิ่งใหม่ที่ยังไม่เคยได้ทำประกอบกับความกดดันจึงเครียดมาก
+- ยิ่งระบบใหญ่ขึ้นยิ่งต้องมีการออกแบบตอนต้นที่ดีกว่านี้ ส่วนตัวในคู่ได้เริ่มช่วยกันวางแผนเขียน System Architecture และแบ่ง Node กันเขียนแต่พอเขียนไปเรื่อยๆภาพที่วางแผนไว้ตอนแรกเริ่มทำออกมาได้ลำบากและยิ่งยากมากขึ้นเรื่อยๆเมื่อนำมารวมกัน ภายหลังจึงมีการปรับ System Architecture ใหม่และทำการ Debug โค้ดให้สามารถทำงานได้ครอบคลุมสถานการณ์ให้ได้มากที่สุด
+- ต้องใช้ความรู้และความเข้าใจเยอะมากเกี่ยวกับการใช้ namespace parameter เพราะ node ในระบบเยอะมากและต้องควมคุมหลายอย่าง
+- algorithm การเขียน state machine มีความเยอะและซับซ้อนมาก ทั้งการกำหนดการสื่อสาร การเลือกหน้าที่ให้โหดแต่ละตัว ถ้ามีเวลามากกว่านี้อาจจะทำให้ระบบเสถียรมากกว่านี้ได้
+  
+## **จัดทำโดย**
+- **นายกีรติ ยุบลมาตย์ 65340500003**
+- **นายจรรยวรรธ ไทรงาม 65340500006**
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+โปรเจคนี้เป็นส่วนหนึ่งของการสอบในวิชา Robotics-Dev
